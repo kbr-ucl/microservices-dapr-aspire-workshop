@@ -1,0 +1,19 @@
+common:
+  resourcesPath: ../shared/resources-simple
+apps:
+- appDirPath: ./PizzaStorefront
+  appID: pizza-storefront
+  daprHTTPPort: 3502
+  appPort: 8002
+  command: ["dotnet", "run"] 
+- appDirPath: ./PizzaKitchen
+  appID: pizza-kitchen
+  daprHTTPPort: 3503
+  appPort: 8003
+  command: ["dotnet", "run"]
+- appDirPath: ./PizzaDelivery
+  appID: pizza-delivery
+  daprHTTPPort: 3504
+  appPort: 8004
+  command: ["dotnet", "run"]
+version: 1

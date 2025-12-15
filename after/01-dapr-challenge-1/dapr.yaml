@@ -1,0 +1,11 @@
+common:
+  resourcesPath: ../shared/resources-simple
+apps:
+- appDirPath: ./PizzaOrder
+  appID: pizza-order
+  appPort: 8001
+  daprHTTPPort: 3501
+  command:
+  - dotnet
+  - run
+version: 1

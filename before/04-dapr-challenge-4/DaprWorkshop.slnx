@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="../shared/Endpoints.http" />
+    <File Path="../shared/resources/pubsub.yaml" />
+    <File Path="../shared/resources/statestore.yaml" />
+    <File Path="../shared/resources/subscription.yaml" />
+  </Folder>
+  <Project Path="PizzaDelivery/PizzaDelivery.csproj" />
+  <Project Path="PizzaKitchen/PizzaKitchen.csproj" />
+  <Project Path="PizzaStorefront/PizzaStorefront.csproj" />
+  <Project Path="PizzaWorkflow/PizzaWorkflow.csproj" />
+</Solution>

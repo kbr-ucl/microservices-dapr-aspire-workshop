@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+	<File Path="../aspire-shared/Endpoints.http" />
+    <File Path="../aspire-shared/resources/statestore.yaml" />
+  </Folder>
+  <Project Path="PizzaOrder/PizzaOrder.csproj" />
+</Solution>

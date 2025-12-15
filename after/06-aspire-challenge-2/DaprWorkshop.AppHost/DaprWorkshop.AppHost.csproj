@@ -1,0 +1,23 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.0.1">
+
+	<PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>bc95cea9-9bf7-4c31-aa1d-70924c8c796e</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.Dapr" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PizzaDelivery\PizzaDelivery.csproj" />
+    <ProjectReference Include="..\PizzaKitchen\PizzaKitchen.csproj" />
+    <ProjectReference Include="..\PizzaOrder\PizzaOrder.csproj" />
+    <ProjectReference Include="..\PizzaStorefront\PizzaStorefront.csproj" />
+  </ItemGroup>
+
+</Project>

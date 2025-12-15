@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="../aspire-shared/Endpoints.http" />
+    <File Path="../aspire-shared/resources/pubsub.yaml" />
+    <File Path="../aspire-shared/resources/statestore.yaml" />
+  </Folder>
+  <Project Path="DaprWorkshop.AppHost/DaprWorkshop.AppHost.csproj" />
+  <Project Path="DaprWorkshop.ServiceDefaults/DaprWorkshop.ServiceDefaults.csproj" />
+  <Project Path="PizzaDelivery/PizzaDelivery.csproj" />
+  <Project Path="PizzaKitchen/PizzaKitchen.csproj" />
+  <Project Path="PizzaOrder/PizzaOrder.csproj" />
+  <Project Path="PizzaStorefront/PizzaStorefront.csproj" />
+  <Project Path="PizzaWorkflow/PizzaWorkflow.csproj" />
+</Solution>
