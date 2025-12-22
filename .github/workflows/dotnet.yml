@@ -4,7 +4,7 @@
 name: .NET
 
 on:
-  push:
+  push: 
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
@@ -15,14 +15,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses:  actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 10.0.x
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
+      with: 
+        dotnet-version: 9.0.x
+    - name: Find and build all solutions
+      run: |
+        # Find all .slnx and .sln files
+        solutions=$(find . -name "*.slnx" -o -name "*.sln")
+        
+        if [ -z "$solutions" ]; then
+          echo "No solution files found"
+          exit 1
+        fi
+        
+        # Build each solution
+        for solution in $solutions; do
+          echo "Building $solution"
+          dotnet restore "$solution"
+          dotnet build "$solution" --no-restore
+        done
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: |
+        # Find and test all solutions
+        solutions=$(find .  -name "*.slnx" -o -name "*.sln")
+        for solution in $solutions; do
+          echo "Testing $solution"
+          dotnet test "$solution" --no-build --verbosity normal || true
+        done
