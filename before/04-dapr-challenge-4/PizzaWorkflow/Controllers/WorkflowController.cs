@@ -83,6 +83,7 @@ public class WorkflowController : ControllerBase
             _logger.LogInformation("Getting workflow status for order {OrderId}", request.OrderId);
 
             //TODO: Get workflow status
+            var status = "replace me"; // Placeholder for actual status
 
             _logger.LogInformation("Workflow status retrieved successfully for order {OrderId}", request.OrderId);
 

@@ -22,3 +22,7 @@ public class ValidationRequest
     public required string OrderId { get; set; }
     public required bool Approved { get; set; }
 }
+public class ManageWorkflowRequest
+{
+    public required string OrderId { get; set; }
+}
