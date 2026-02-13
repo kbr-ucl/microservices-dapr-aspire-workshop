@@ -155,3 +155,30 @@ By integrating Aspire into this workshop, you gain:
 - [Dapr - Aspire challenge 3 - Programmatic:](./docs/aspire/challenge-3/aspire.md)
 - [Dapr - Aspire challenge 4:](./docs/aspire/challenge-4/aspire.md)
 - [Dapr - Aspire challenge 5:](./docs/aspire/challenge-5/aspire.md)
+
+## Updating Aspire Packages
+
+A PowerShell script is provided to update all Aspire-related NuGet packages and SDK versions across the solution. It updates the central `Directory.Packages.props` and the `Aspire.AppHost.Sdk` version in each AppHost `.csproj` file.
+
+### Prerequisites
+
+The script requires **PowerShell 7+** (`pwsh`). If you only have Windows PowerShell 5.1, install it with:
+
+```powershell
+winget install Microsoft.PowerShell
+```
+
+### Usage
+
+Run from the repository root using `pwsh`:
+
+```powershell
+# Preview changes (no files modified)
+pwsh ./after/Update-AspirePackages.ps1 -DryRun
+
+# Apply updates to latest stable versions
+pwsh ./after/Update-AspirePackages.ps1
+
+# Pin to a specific Aspire SDK version
+pwsh ./after/Update-AspirePackages.ps1 -TargetVersion "9.2.0"
+```
