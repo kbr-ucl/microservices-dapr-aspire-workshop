@@ -1,10 +1,12 @@
 using PizzaDelivery.Services;
 
+using Scalar.AspNetCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
 builder.Services.AddControllers().AddDapr();
 builder.Services.AddSingleton<IDeliveryService, DeliveryService>();
 
@@ -14,6 +16,8 @@ app.MapDefaultEndpoints();
 
 if (app.Environment.IsDevelopment())
 {
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.MapControllers();

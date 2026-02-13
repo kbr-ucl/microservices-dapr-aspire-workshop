@@ -182,3 +182,46 @@ pwsh ./after/Update-AspirePackages.ps1
 # Pin to a specific Aspire SDK version
 pwsh ./after/Update-AspirePackages.ps1 -TargetVersion "9.2.0"
 ```
+
+## Scalar API Reference
+
+This workshop uses [Scalar](https://scalar.com/) as the interactive API documentation UI, replacing the older Swagger UI. Scalar provides a modern, fast, and developer-friendly interface for exploring and testing your API endpoints.
+
+### How it works
+
+Each service registers the OpenAPI endpoint and the Scalar UI in `Program.cs`:
+
+```csharp
+using Scalar.AspNetCore;
+
+builder.Services.AddOpenApi();
+
+// ...
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
+```
+
+### Accessing Scalar
+
+When running a service in Development mode, Scalar is available at:
+
+```
+http://localhost:<port>/scalar/v1
+```
+
+For example, if `PizzaOrder` runs on port 8001:
+- **Scalar UI:** http://localhost:8001/scalar/v1
+- **OpenAPI spec (JSON):** http://localhost:8001/openapi/v1.json
+
+When running via the **Aspire AppHost**, you can access each service's Scalar UI by clicking on the service endpoint in the Aspire Dashboard and appending `/scalar/v1` to the URL.
+
+### Features
+
+- Browse all available API endpoints grouped by controller
+- View request/response schemas and example payloads
+- Send test requests directly from the browser
+- Switch between different API clients (cURL, Python, C#, etc.)

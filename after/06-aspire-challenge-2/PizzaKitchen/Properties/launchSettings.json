@@ -1,9 +1,9 @@
-﻿{
+{
   "profiles": {
     "PizzaKitchen": {
       "commandName": "Project",
       "launchBrowser": false,
-      "launchUrl": "swagger",
+      "launchUrl": "scalar/v1",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },

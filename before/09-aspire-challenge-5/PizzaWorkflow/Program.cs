@@ -2,6 +2,8 @@ using Dapr.Workflow;
 using PizzaWorkflow.Activities;
 using PizzaWorkflow.Workflows;
 
+using Scalar.AspNetCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
@@ -9,7 +11,7 @@ builder.AddServiceDefaults();
 // BUG: The following line is missing from the original code
 builder.Services.AddControllers().AddDapr();
 
-builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
 
 
 builder.Services.AddDaprWorkflow(options =>
@@ -30,7 +32,8 @@ app.MapDefaultEndpoints();
 
 if (app.Environment.IsDevelopment())
 {
-
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.MapControllers();
