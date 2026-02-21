@@ -342,7 +342,15 @@ This command uses the `dapr.yaml` file run the system.
 
 ## The Dapr Dashboard
 
-Run Dapr Dashboard and check for errors
+The [Dapr Dashboard](https://docs.dapr.io/reference/dashboard/) is a web-based UI that provides information about Dapr applications, components, and configurations running in your environment.
+
+Run the Dapr Dashboard by executing the following command in a new terminal:
+
+```bash
+dapr dashboard
+```
+
+Navigate to http://localhost:8080 in your browser to view the dashboard. Verify that all your Dapr applications and components are loaded correctly and check for any errors.
 
 
 ## Test the service (Postman or Bruno)
