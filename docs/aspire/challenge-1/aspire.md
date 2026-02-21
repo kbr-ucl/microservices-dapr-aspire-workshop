@@ -54,8 +54,15 @@ builder.AddProject<PizzaOrder>("pizzaorderservice")
         ResourcesPaths = daprResources
     });
 
+builder.AddExecutable("dapr-dashboard", "dapr", ".", "dashboard")
+    .WithHttpEndpoint(port: 8080, targetPort: 8080, isProxied: false);
+
 builder.Build().Run();
 ```
+
+#### Add Dapr Dashboard
+
+The [Dapr Dashboard](https://docs.dapr.io/reference/dashboard/) is a web-based UI that provides information about Dapr applications, components, and configurations. By adding it as an executable resource in Aspire, the dashboard is launched automatically and accessible from the Aspire dashboard at `http://localhost:8080`.
 
 
 

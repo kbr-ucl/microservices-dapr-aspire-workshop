@@ -45,4 +45,7 @@ builder.AddProject<PizzaWorkflow>("pizzaworkflowservice")
         ResourcesPaths = daprResources
     });
 
+builder.AddExecutable("dapr-dashboard", "dapr", ".", "dashboard")
+    .WithHttpEndpoint(port: 8080, targetPort: 8080, isProxied: false);
+
 builder.Build().Run();

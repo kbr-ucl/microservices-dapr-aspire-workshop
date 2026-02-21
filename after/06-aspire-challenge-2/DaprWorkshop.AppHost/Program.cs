@@ -38,4 +38,7 @@ builder.AddProject<PizzaDelivery>("pizzadeliveryservice")
         DaprHttpPort = 3504
     });
 
+builder.AddExecutable("dapr-dashboard", "dapr", ".", "dashboard")
+    .WithHttpEndpoint(port: 8080, targetPort: 8080, isProxied: false);
+
 builder.Build().Run();
