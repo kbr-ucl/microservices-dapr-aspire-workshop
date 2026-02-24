@@ -7,7 +7,7 @@ var daprResources = ImmutableHashSet.Create("../../aspire-shared/resources");
 builder.AddProject<Projects.PizzaOrder>("pizzaorderservice")
     .WithDaprSidecar(new DaprSidecarOptions
     {
-        AppId = "pizzaorder",
+        AppId = "pizza-order",
         DaprHttpPort = 3501,
         ResourcesPaths = daprResources
     });
