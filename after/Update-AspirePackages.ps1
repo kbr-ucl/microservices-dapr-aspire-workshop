@@ -111,14 +111,14 @@ else {
     Write-Host "  Latest $aspireSdkName version: $latestSdkVersion" -ForegroundColor Green
 }
 
-$csprojFiles = Get-ChildItem -Path $scriptDir -Recurse -Filter "*.csproj"
+$csprojFiles = Get-ChildItem -Path $repoRoot -Recurse -Filter "*.csproj"
 $appHostCount = 0
 
 foreach ($file in $csprojFiles) {
     $content = Get-Content $file.FullName -Raw
     if ($content -match "Aspire\.AppHost\.Sdk/([\d\.]+)") {
         $currentVersion = $Matches[1]
-        $relativePath = $file.FullName.Replace($scriptDir, ".").Replace($repoRoot, "..")
+        $relativePath = $file.FullName.Replace($repoRoot, ".")
 
         if ($currentVersion -eq $latestSdkVersion) {
             Write-Host "  [UP-TO-DATE] $relativePath ($currentVersion)" -ForegroundColor DarkGray
