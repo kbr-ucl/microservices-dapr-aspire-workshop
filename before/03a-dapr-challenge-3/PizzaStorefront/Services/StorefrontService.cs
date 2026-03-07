@@ -1,5 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
 using PizzaStorefront.Models;
-using Dapr.Client;
 
 namespace PizzaStorefront.Services;
 
@@ -10,12 +10,17 @@ public interface IStorefrontService
 
 public class StorefrontService : IStorefrontService
 {
-    private readonly DaprClient _daprClient;
+    private readonly HttpClient _kitchenClient;
+    private readonly HttpClient _deliveryClient;
     private readonly ILogger<StorefrontService> _logger;
 
-    public StorefrontService(DaprClient daprClient, ILogger<StorefrontService> logger)
+    public StorefrontService(
+        [FromKeyedServices("pizza-kitchen")] HttpClient kitchenClient,
+        [FromKeyedServices("pizza-delivery")] HttpClient deliveryClient,
+        ILogger<StorefrontService> logger)
     {
-        _daprClient = daprClient;
+        _kitchenClient = kitchenClient;
+        _deliveryClient = deliveryClient;
         _logger = logger;
     }
 

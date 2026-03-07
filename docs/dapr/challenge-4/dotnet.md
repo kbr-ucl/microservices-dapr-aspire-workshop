@@ -69,20 +69,21 @@ Each task will be a separate activity. These activities will be executed in sequ
 Create an `Activities` folder inside the PizzaWorkflow folder. Inside this `/Activities` folder, create a new file called `CookingActivity.cs`. Copy and paste the following content:
 
 ```csharp
-using Dapr.Client;
+using System.Net.Http.Json;
 using Dapr.Workflow;
+using Microsoft.Extensions.DependencyInjection;
 using PizzaWorkflow.Models;
 
 namespace PizzaWorkflow.Activities;
 
 public class CookingActivity : WorkflowActivity<Order, Order>
 {
-    private readonly DaprClient _daprClient;
+    private readonly HttpClient _kitchenClient;
     private readonly ILogger<CookingActivity> _logger;
 
-    public CookingActivity(DaprClient daprClient, ILogger<CookingActivity> logger)
+    public CookingActivity([FromKeyedServices("pizza-kitchen")] HttpClient kitchenClient, ILogger<CookingActivity> logger)
     {
-        _daprClient = daprClient;
+        _kitchenClient = kitchenClient;
         _logger = logger;
     }
 
@@ -92,11 +93,9 @@ public class CookingActivity : WorkflowActivity<Order, Order>
         {
             _logger.LogInformation("Starting cooking process for order {OrderId}", order.OrderId);
             
-            var response = await _daprClient.InvokeMethodAsync<Order, Order>(
-                HttpMethod.Post,
-                "pizza-kitchen",
-                "cook",
-                order);
+            var resp = await _kitchenClient.PostAsJsonAsync("/cook", order);
+            resp.EnsureSuccessStatusCode();
+            var response = (await resp.Content.ReadFromJsonAsync<Order>())!;
 
             _logger.LogInformation("Order {OrderId} cooked with status {Status}", 
                 order.OrderId, response.Status);
@@ -114,11 +113,12 @@ public class CookingActivity : WorkflowActivity<Order, Order>
 
 #### Let's break this down
 
-1. The section below imports the Dapr Client, Workflow, and the Order model you will leverage in this activity.
+1. The section below imports Dapr Workflow, `HttpClient` JSON helpers, `[FromKeyedServices]`, and the Order model.
 
 ```csharp
-using Dapr.Client;
+using System.Net.Http.Json;
 using Dapr.Workflow;
+using Microsoft.Extensions.DependencyInjection;
 using PizzaWorkflow.Models;
 ```
 
@@ -134,14 +134,12 @@ public class CookingActivity : WorkflowActivity<Order, Order>
 public override async Task<Order> RunAsync(WorkflowActivityContext context, Order order)
 ```
 
-4. You are now using the Service Invocation API to invoke the `/cook` method from our `pizza-kitchen` service:
+4. The activity injects a keyed `HttpClient` for `pizza-kitchen` and uses `PostAsJsonAsync` and `ReadFromJsonAsync` to invoke the `/cook` endpoint:
 
 ```csharp
-var response = await _daprClient.InvokeMethodAsync<Order, Order>(
-    HttpMethod.Post,
-    "pizza-kitchen",
-    "cook",
-    order);
+var resp = await _kitchenClient.PostAsJsonAsync("/cook", order);
+resp.EnsureSuccessStatusCode();
+var response = (await resp.Content.ReadFromJsonAsync<Order>())!;
 ```
 
 Now let's do the same to call the `pizza-delivery` and `pizza-storefront` applications via Activities.
@@ -151,20 +149,21 @@ Now let's do the same to call the `pizza-delivery` and `pizza-storefront` applic
 Inside the `/Activities` folder, create a new file called `DeliveryActivity.cs`. Copy and paste the following content:
 
 ```csharp
-using Dapr.Client;
+using System.Net.Http.Json;
 using Dapr.Workflow;
+using Microsoft.Extensions.DependencyInjection;
 using PizzaWorkflow.Models;
 
 namespace PizzaWorkflow.Activities;
 
 public class DeliveryActivity : WorkflowActivity<Order, Order>
 {
-    private readonly DaprClient _daprClient;
+    private readonly HttpClient _deliveryClient;
     private readonly ILogger<DeliveryActivity> _logger;
 
-    public DeliveryActivity(DaprClient daprClient, ILogger<DeliveryActivity> logger)
+    public DeliveryActivity([FromKeyedServices("pizza-delivery")] HttpClient deliveryClient, ILogger<DeliveryActivity> logger)
     {
-        _daprClient = daprClient;
+        _deliveryClient = deliveryClient;
         _logger = logger;
     }
 
@@ -174,11 +173,9 @@ public class DeliveryActivity : WorkflowActivity<Order, Order>
         {
             _logger.LogInformation("Starting delivery process for order {OrderId}", order.OrderId);
             
-            var response = await _daprClient.InvokeMethodAsync<Order, Order>(
-                HttpMethod.Post,
-                "pizza-delivery",
-                "delivery",
-                order);
+            var resp = await _deliveryClient.PostAsJsonAsync("/delivery", order);
+            resp.EnsureSuccessStatusCode();
+            var response = (await resp.Content.ReadFromJsonAsync<Order>())!;
 
             _logger.LogInformation("Order {OrderId} delivered with status {Status}", 
                 order.OrderId, response.Status);
@@ -199,20 +196,21 @@ public class DeliveryActivity : WorkflowActivity<Order, Order>
 Inside the `/Activities` folder, create a new file called `StorefrontActivity.cs`. Copy and paste the following content:
 
 ```csharp
-using Dapr.Client;
+using System.Net.Http.Json;
 using Dapr.Workflow;
+using Microsoft.Extensions.DependencyInjection;
 using PizzaWorkflow.Models;
 
 namespace PizzaWorkflow.Activities;
 
 public class StorefrontActivity : WorkflowActivity<Order, Order>
 {
-    private readonly DaprClient _daprClient;
+    private readonly HttpClient _storefrontClient;
     private readonly ILogger<StorefrontActivity> _logger;
 
-    public StorefrontActivity(DaprClient daprClient, ILogger<StorefrontActivity> logger)
+    public StorefrontActivity([FromKeyedServices("pizza-storefront")] HttpClient storefrontClient, ILogger<StorefrontActivity> logger)
     {
-        _daprClient = daprClient;
+        _storefrontClient = storefrontClient;
         _logger = logger;
     }
 
@@ -222,11 +220,9 @@ public class StorefrontActivity : WorkflowActivity<Order, Order>
         {
             _logger.LogInformation("Starting ordering process for order {OrderId}", order.OrderId);
             
-            var response = await _daprClient.InvokeMethodAsync<Order, Order>(
-                HttpMethod.Post,
-                "pizza-storefront",
-                "/storefront/order",
-                order);
+            var resp = await _storefrontClient.PostAsJsonAsync("/storefront/order", order);
+            resp.EnsureSuccessStatusCode();
+            var response = (await resp.Content.ReadFromJsonAsync<Order>())!;
 
             _logger.LogInformation("Order {OrderId} processed with status {Status}", 
                 order.OrderId, response.Status);
@@ -515,9 +511,17 @@ await _daprWorkflowClient.TerminateWorkflowAsync(instanceId);
 
 ## Register the Workflow and Activities
 
-Finally, you will register the workflow and its activities when the service starts. Open `Program.cs` and replace the `TODO:` comment with the code below:
+Register keyed `HttpClient` instances for the workflow activities and the workflow itself when the service starts. Open `Program.cs` and add the following (or replace the `TODO:` comment):
 
 ```csharp
+using Dapr.Client;
+// ...
+builder.Services.AddKeyedSingleton<HttpClient>("pizza-kitchen", (_, _) =>
+    DaprClient.CreateInvokeHttpClient("pizza-kitchen"));
+builder.Services.AddKeyedSingleton<HttpClient>("pizza-delivery", (_, _) =>
+    DaprClient.CreateInvokeHttpClient("pizza-delivery"));
+builder.Services.AddKeyedSingleton<HttpClient>("pizza-storefront", (_, _) =>
+    DaprClient.CreateInvokeHttpClient("pizza-storefront"));
 builder.Services.AddDaprWorkflow(options =>
 {
   // Register workflows
@@ -530,6 +534,8 @@ builder.Services.AddDaprWorkflow(options =>
   options.RegisterActivity<DeliveryActivity>();
 });
 ```
+
+The keyed `HttpClient` registrations provide Dapr-aware clients for `pizza-kitchen`, `pizza-delivery`, and `pizza-storefront`, which the workflow activities inject via `[FromKeyedServices]`.
 
 Now that the workflow is responsible for orchestrating the service invocation calls more elegantly, you don't need the same behaviour happening in the Storefront service.
 

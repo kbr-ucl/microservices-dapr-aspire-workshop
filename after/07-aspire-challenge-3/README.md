@@ -55,10 +55,10 @@ The application models a full pizza order lifecycle — from storefront intake t
 
 ### 3. Service Invocation
 
-- **PizzaStorefront** uses `DaprClient.InvokeMethodAsync` to call:
+- **PizzaStorefront** uses named `HttpClient` instances registered via `AddKeyedSingleton` and `DaprClient.CreateInvokeHttpClient`, injected with `[FromKeyedServices("pizza-kitchen")]` and `[FromKeyedServices("pizza-delivery")]`, to call:
   - `pizza-kitchen` → `POST /cook` (cook the pizza)
   - `pizza-delivery` → `POST /delivery` (deliver the pizza)
-- Dapr handles service discovery, mTLS, retries, and observability automatically.
+- Calls use `PostAsJsonAsync` and `ReadFromJsonAsync` for request/response. Dapr handles service discovery, mTLS, retries, and observability automatically.
 
 ## Order Lifecycle
 

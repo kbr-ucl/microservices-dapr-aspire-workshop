@@ -382,14 +382,45 @@ catch (Exception ex)
 
 ## Update the Storefront service to publish messages to the message broker
 
-1. Inside the `PizzaStorefront` service folder, navigate to `/Services/Storefront.cs` and add the pub/sub constants:
+1. In `Program.cs`, register `DaprClient` (if needed for pub/sub) and keyed `HttpClient` instances for service invocation:
 
 ```csharp
-private const string PUBSUB_NAME = "pizzapubsub";
-private const string TOPIC_NAME = "orders";
+builder.Services.AddDaprClient();
+builder.Services.AddKeyedSingleton<HttpClient>("pizza-kitchen", (_, _) =>
+    DaprClient.CreateInvokeHttpClient("pizza-kitchen"));
+builder.Services.AddKeyedSingleton<HttpClient>("pizza-delivery", (_, _) =>
+    DaprClient.CreateInvokeHttpClient("pizza-delivery"));
 ```
 
-2. Inside `ProcessOrderAsync` update the try-catch block with:
+Add `using Dapr.Client;` if not already present.
+
+2. Inside the `PizzaStorefront` service folder, navigate to `/Services/StorefrontService.cs`. Add `using Microsoft.Extensions.DependencyInjection;`, the pub/sub constants, and the HttpClient fields. Update the constructor to inject `DaprClient`, and the keyed HttpClients via `[FromKeyedServices]`:
+
+```csharp
+using Dapr.Client;
+using Microsoft.Extensions.DependencyInjection;
+
+private const string PUBSUB_NAME = "pizzapubsub";
+private const string TOPIC_NAME = "orders";
+
+private readonly DaprClient _daprClient;
+private readonly HttpClient _kitchenClient;
+private readonly HttpClient _deliveryClient;
+private readonly ILogger<StorefrontService> _logger;
+
+public StorefrontService(DaprClient daprClient,
+    [FromKeyedServices("pizza-kitchen")] HttpClient kitchenClient,
+    [FromKeyedServices("pizza-delivery")] HttpClient deliveryClient,
+    ILogger<StorefrontService> logger)
+{
+    _daprClient = daprClient;
+    _kitchenClient = kitchenClient;
+    _deliveryClient = deliveryClient;
+    _logger = logger;
+}
+```
+
+3. Inside `ProcessOrderAsync` update the try-catch block with:
 
 ```csharp
 try
@@ -406,29 +437,23 @@ try
 
     _logger.LogInformation("Starting cooking process for order {OrderId}", order.OrderId);
         
-    // Use the Service Invocation building block to invoke the endpoint in the pizza-kitchen service
-    var response = await _daprClient.InvokeMethodAsync<Order, Order>(
-        HttpMethod.Post,
-        "pizza-kitchen",
-        "cook",
-        order);
+    var cookResp = await _kitchenClient.PostAsJsonAsync("/cook", order);
+    cookResp.EnsureSuccessStatusCode();
+    var response = (await cookResp.Content.ReadFromJsonAsync<Order>())!;
 
     _logger.LogInformation("Order {OrderId} cooked with status {Status}", 
         order.OrderId, response.Status);
 
-    // Use the Service Invocation building block to invoke the endpoint in the pizza-delivery service
     _logger.LogInformation("Starting delivery process for order {OrderId}", order.OrderId);
         
-    response = await _daprClient.InvokeMethodAsync<Order, Order>(
-        HttpMethod.Post,
-        "pizza-delivery",
-        "delivery",
-        order);
+    var deliverResp = await _deliveryClient.PostAsJsonAsync("/delivery", response);
+    deliverResp.EnsureSuccessStatusCode();
+    response = (await deliverResp.Content.ReadFromJsonAsync<Order>())!;
 
     _logger.LogInformation("Order {OrderId} delivered with status {Status}", 
         order.OrderId, response.Status);
 
-    return order;
+    return response;
 }
 catch (Exception ex)
 {

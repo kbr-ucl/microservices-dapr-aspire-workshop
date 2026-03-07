@@ -1,17 +1,18 @@
-﻿using Dapr.Workflow;
-using Dapr.Client;
+using System.Net.Http.Json;
+using Dapr.Workflow;
+using Microsoft.Extensions.DependencyInjection;
 using PizzaWorkflow.Models;
 
 namespace PizzaWorkflow.Activities
 {
     public class CookingActivity : WorkflowActivity<Order, Order>
     {
-        private readonly DaprClient _daprClient;
+        private readonly HttpClient _kitchenClient;
         private readonly ILogger<CookingActivity> _logger;
 
-        public CookingActivity(DaprClient daprClient, ILogger<CookingActivity> logger)
+        public CookingActivity([FromKeyedServices("pizza-kitchen")] HttpClient kitchenClient, ILogger<CookingActivity> logger)
         {
-            _daprClient = daprClient;
+            _kitchenClient = kitchenClient;
             _logger = logger;
         }
 
@@ -21,11 +22,9 @@ namespace PizzaWorkflow.Activities
             {
                 _logger.LogInformation("Starting cooking process for order {OrderId}", order.OrderId);
 
-                var response = await _daprClient.InvokeMethodAsync<Order, Order>(
-                    HttpMethod.Post,
-                    "pizza-kitchen",
-                    "cook",
-                    order);
+                var resp = await _kitchenClient.PostAsJsonAsync("/cook", order);
+                resp.EnsureSuccessStatusCode();
+                var response = (await resp.Content.ReadFromJsonAsync<Order>())!;
 
                 _logger.LogInformation("Order {OrderId} cooked with status {Status}",
                     order.OrderId, response.Status);

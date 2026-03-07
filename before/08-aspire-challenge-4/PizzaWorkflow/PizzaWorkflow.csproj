@@ -5,6 +5,8 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
 	<ItemGroup>
+	</ItemGroup>
+	<ItemGroup>
 		<PackageReference Include="Dapr.AspNetCore" />
 		<PackageReference Include="Dapr.Workflow" />
 	</ItemGroup>

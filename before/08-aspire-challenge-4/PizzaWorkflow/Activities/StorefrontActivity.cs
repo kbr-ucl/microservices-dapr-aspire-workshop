@@ -1,17 +1,18 @@
-﻿using Dapr.Client;
+using System.Net.Http.Json;
 using Dapr.Workflow;
+using Microsoft.Extensions.DependencyInjection;
 using PizzaWorkflow.Models;
 
 namespace PizzaWorkflow.Activities;
 
 public class StorefrontActivity : WorkflowActivity<Order, Order>
 {
-    private readonly DaprClient _daprClient;
+    private readonly HttpClient _storefrontClient;
     private readonly ILogger<StorefrontActivity> _logger;
 
-    public StorefrontActivity(DaprClient daprClient, ILogger<StorefrontActivity> logger)
+    public StorefrontActivity([FromKeyedServices("pizza-storefront")] HttpClient storefrontClient, ILogger<StorefrontActivity> logger)
     {
-        _daprClient = daprClient;
+        _storefrontClient = storefrontClient;
         _logger = logger;
     }
 
@@ -21,11 +22,9 @@ public class StorefrontActivity : WorkflowActivity<Order, Order>
         {
             _logger.LogInformation("Starting ordering process for order {OrderId}", order.OrderId);
 
-            var response = await _daprClient.InvokeMethodAsync<Order, Order>(
-                HttpMethod.Post,
-                "pizza-storefront",
-                "/storefront/order",
-                order);
+            var resp = await _storefrontClient.PostAsJsonAsync("/storefront/order", order);
+            resp.EnsureSuccessStatusCode();
+            var response = (await resp.Content.ReadFromJsonAsync<Order>())!;
 
             _logger.LogInformation("Order {OrderId} processed with status {Status}",
                 order.OrderId, response.Status);

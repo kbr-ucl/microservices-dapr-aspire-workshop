@@ -72,7 +72,7 @@ after/
 **Services:** PizzaStorefront, PizzaKitchen, PizzaDelivery, PizzaOrder (4 services)
 
 **Technologies:**
-- Dapr Service Invocation (`DaprClient.InvokeMethodAsync`)
+- Dapr Service Invocation (HttpClient via AddKeyedSingleton and DaprClient.CreateInvokeHttpClient)
 - Dapr State Management (from challenge 1)
 
 **Communication Pattern:** Synchronous request/response via Dapr service invocation: Storefront → Kitchen → Delivery (chain)

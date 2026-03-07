@@ -1,3 +1,4 @@
+using Dapr.Client;
 using PizzaStorefront.Services;
 
 using Scalar.AspNetCore;
@@ -8,6 +9,11 @@ builder.AddServiceDefaults();
 
 builder.Services.AddOpenApi();
 builder.Services.AddControllers().AddDapr();
+builder.Services.AddDaprClient();
+builder.Services.AddKeyedSingleton<HttpClient>("pizza-kitchen", (_, _) =>
+    DaprClient.CreateInvokeHttpClient("pizza-kitchen"));
+builder.Services.AddKeyedSingleton<HttpClient>("pizza-delivery", (_, _) =>
+    DaprClient.CreateInvokeHttpClient("pizza-delivery"));
 builder.Services.AddSingleton<IStorefrontService, StorefrontService>();
 
 var app = builder.Build();

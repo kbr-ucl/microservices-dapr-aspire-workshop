@@ -1,5 +1,6 @@
+using System.Net.Http.Json;
+using Microsoft.Extensions.DependencyInjection;
 using PizzaStorefront.Models;
-using Dapr.Client;
 
 namespace PizzaStorefront.Services;
 
@@ -10,12 +11,17 @@ public interface IStorefrontService
 
 public class StorefrontService : IStorefrontService
 {
-    private readonly DaprClient _daprClient;
+    private readonly HttpClient _kitchenClient;
+    private readonly HttpClient _deliveryClient;
     private readonly ILogger<StorefrontService> _logger;
 
-    public StorefrontService(DaprClient daprClient, ILogger<StorefrontService> logger)
+    public StorefrontService(
+        [FromKeyedServices("pizza-kitchen")] HttpClient kitchenClient,
+        [FromKeyedServices("pizza-delivery")] HttpClient deliveryClient,
+        ILogger<StorefrontService> logger)
     {
-        _daprClient = daprClient;
+        _kitchenClient = kitchenClient;
+        _deliveryClient = deliveryClient;
         _logger = logger;
     }
 
@@ -30,7 +36,6 @@ public class StorefrontService : IStorefrontService
 
         try
         {
-            // Set pizza order status
             foreach (var (status, duration) in stages)
             {
                 order.Status = status;
@@ -41,29 +46,23 @@ public class StorefrontService : IStorefrontService
 
             _logger.LogInformation("Starting cooking process for order {OrderId}", order.OrderId);
 
-            // Use the Service Invocation building block to invoke the endpoint in the pizza-kitchen service
-            var response = await _daprClient.InvokeMethodAsync<Order, Order>(
-                HttpMethod.Post,
-                "pizza-kitchen",
-                "cook",
-                order);
+            var resp = await _kitchenClient.PostAsJsonAsync("/cook", order);
+            resp.EnsureSuccessStatusCode();
+            var response = (await resp.Content.ReadFromJsonAsync<Order>())!;
 
             _logger.LogInformation("Order {OrderId} cooked with status {Status}",
-                order.OrderId, order.Status);
+                order.OrderId, response.Status);
 
-            // Use the Service Invocation building block to invoke the endpoint in the pizza-delivery service
             _logger.LogInformation("Starting delivery process for order {OrderId}", order.OrderId);
 
-            response = await _daprClient.InvokeMethodAsync<Order, Order>(
-                HttpMethod.Post,
-                "pizza-delivery",
-                "delivery",
-                order);
+            resp = await _deliveryClient.PostAsJsonAsync("/delivery", response);
+            resp.EnsureSuccessStatusCode();
+            response = (await resp.Content.ReadFromJsonAsync<Order>())!;
 
             _logger.LogInformation("Order {OrderId} delivered with status {Status}",
-                order.OrderId, order.Status);
+                order.OrderId, response.Status);
 
-            return order;
+            return response;
         }
         catch (Exception ex)
         {

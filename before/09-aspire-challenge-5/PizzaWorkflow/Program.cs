@@ -1,3 +1,4 @@
+using Dapr.Client;
 using Dapr.Workflow;
 using PizzaWorkflow.Activities;
 using PizzaWorkflow.Workflows;
@@ -8,8 +9,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// BUG: The following line is missing from the original code
 builder.Services.AddControllers().AddDapr();
+builder.Services.AddKeyedSingleton<HttpClient>("pizza-kitchen", (_, _) =>
+    DaprClient.CreateInvokeHttpClient("pizza-kitchen"));
+builder.Services.AddKeyedSingleton<HttpClient>("pizza-delivery", (_, _) =>
+    DaprClient.CreateInvokeHttpClient("pizza-delivery"));
+builder.Services.AddKeyedSingleton<HttpClient>("pizza-storefront", (_, _) =>
+    DaprClient.CreateInvokeHttpClient("pizza-storefront"));
 
 builder.Services.AddOpenApi();
 

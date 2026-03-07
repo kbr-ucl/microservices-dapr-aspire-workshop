@@ -210,97 +210,88 @@ Similar to what we did in the Kitchen Service, this function applies 7 different
     }
     ```
 
-4. Navigate to `/Services/StorefrontService.cs`. Add the Dapr import statement.
+4. Navigate to `/Services/StorefrontService.cs` and ensure it has the necessary usings for `HttpClient`, `ReadFromJsonAsync`, and `PostAsJsonAsync` (from `System.Net.Http.Json`).
+
+5. Register keyed `HttpClient` instances in `Program.cs` and add `using Dapr.Client`:
 
     ```csharp
     using Dapr.Client;
+    // ...
+    builder.Services.AddKeyedSingleton<HttpClient>("pizza-kitchen", (_, _) =>
+        DaprClient.CreateInvokeHttpClient("pizza-kitchen"));
+    builder.Services.AddKeyedSingleton<HttpClient>("pizza-delivery", (_, _) =>
+        DaprClient.CreateInvokeHttpClient("pizza-delivery"));
     ```
 
-5. Add a Dapr client reference and update the constructor with the Dapr dependency:
+6. Modify `StorefrontService` to inject named `HttpClient` instances via `[FromKeyedServices]` and add `using Microsoft.Extensions.DependencyInjection`. Update `ProcessOrderAsync` to use `PostAsJsonAsync` and `ReadFromJsonAsync`:
 
     ```csharp
-    private readonly DaprClient _daprClient;
-
-    public StorefrontService(DaprClient daprClient, ILogger<StorefrontService> logger)
+    using Microsoft.Extensions.DependencyInjection;
+    // ...
+    public class StorefrontService : IStorefrontService
     {
-        _daprClient = daprClient;
-        _logger = logger;
-    }
-    ```
+        private readonly HttpClient _kitchenClient;
+        private readonly HttpClient _deliveryClient;
+        private readonly ILogger<StorefrontService> _logger;
 
-5. Modify `ProcessOrderAsync` with the following:
-
-    ```csharp
-    public async Task<Order> ProcessOrderAsync(Order order)
-    {
-        var stages = new (string status, int duration)[]
+        public StorefrontService(
+            [FromKeyedServices("pizza-kitchen")] HttpClient kitchenClient,
+            [FromKeyedServices("pizza-delivery")] HttpClient deliveryClient,
+            ILogger<StorefrontService> logger)
         {
-            ("validating", 1),
-            ("processing", 2),
-            ("confirmed", 1)
-        };
-    
-        try
-        {
-            // Set pizza order status
-            foreach (var (status, duration) in stages)
-            {
-                order.Status = status;
-                _logger.LogInformation("Order {OrderId} - {Status}", order.OrderId, status);
-    
-                await Task.Delay(TimeSpan.FromSeconds(duration));
-            }
-    
-            _logger.LogInformation("Starting cooking process for order {OrderId}", order.OrderId);
-    
-            // Use the Service Invocation building block to invoke the endpoint in the pizza-kitchen service
-            var response = await _daprClient.InvokeMethodAsync<Order, Order>(
-                HttpMethod.Post,
-                "pizza-kitchen",
-                "cook",
-                order);
-    
-            _logger.LogInformation("Order {OrderId} cooked with status {Status}", 
-                order.OrderId, response.Status);
-    
-            // Use the Service Invocation building block to invoke the endpoint in the pizza-delivery service
-            _logger.LogInformation("Starting delivery process for order {OrderId}", order.OrderId);
-    
-            response = await _daprClient.InvokeMethodAsync<Order, Order>(
-                HttpMethod.Post,
-                "pizza-delivery",
-                "delivery",
-                order);
-    
-            _logger.LogInformation("Order {OrderId} delivered with status {Status}", 
-                order.OrderId, response.Status);
-    
-            return order;
+            _kitchenClient = kitchenClient;
+            _deliveryClient = deliveryClient;
+            _logger = logger;
         }
-        catch (Exception ex)
+
+        public async Task<Order> ProcessOrderAsync(Order order)
         {
-            _logger.LogError(ex, "Error processing order {OrderId}", order.OrderId);
-            order.Status = "failed";
-            order.Error = ex.Message;
+            var stages = new (string status, int duration)[]
+            {
+                ("validating", 1),
+                ("processing", 2),
+                ("confirmed", 1)
+            };
     
-            return order;
+            try
+            {
+                foreach (var (status, duration) in stages)
+                {
+                    order.Status = status;
+                    _logger.LogInformation("Order {OrderId} - {Status}", order.OrderId, status);
+                    await Task.Delay(TimeSpan.FromSeconds(duration));
+                }
+    
+                _logger.LogInformation("Starting cooking process for order {OrderId}", order.OrderId);
+                var cookResp = await _kitchenClient.PostAsJsonAsync("/cook", order);
+                cookResp.EnsureSuccessStatusCode();
+                var response = (await cookResp.Content.ReadFromJsonAsync<Order>())!;
+                _logger.LogInformation("Order {OrderId} cooked with status {Status}", order.OrderId, response.Status);
+    
+                _logger.LogInformation("Starting delivery process for order {OrderId}", order.OrderId);
+                var deliverResp = await _deliveryClient.PostAsJsonAsync("/delivery", response);
+                deliverResp.EnsureSuccessStatusCode();
+                response = (await deliverResp.Content.ReadFromJsonAsync<Order>())!;
+                _logger.LogInformation("Order {OrderId} delivered with status {Status}", order.OrderId, response.Status);
+    
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing order {OrderId}", order.OrderId);
+                order.Status = "failed";
+                order.Error = ex.Message;
+                return order;
+            }
         }
     }
     ```
 
 Breaking down the code above:
 
-1. First the `DaprClient.InvokeMethodAsync` is used to create an invocation object with the Dapr `app-id` of the service you want to invokea and its wndpoint:
+1. The keyed `HttpClient` instances use `DaprClient.CreateInvokeHttpClient(appId)` to create Dapr-aware HTTP clients. This is the recommended approach for Dapr service invocation, replacing the deprecated `InvokeMethodAsync`. Each client targets a specific Dapr `app-id` and is injected via `[FromKeyedServices]`.
 
-```csharp
-var response = await _daprClient.InvokeMethodAsync<Order, Order>(
-                HttpMethod.Post,  # HTTP method to be used
-                "pizza-delivery", # app-id of the service we want to discover
-                "delivery",       # endpoint to the called
-                order);           # body of the request
-```
-
-The code above wraps an HTTP call to the host `localhost` with the port `3504`. This is not calling the _pizza-delivery_ service directly, but rather the sidecar of the _pizza-storefront_ service. The responsibility of making the service invocation call is then passed to the sidecar, as the picture below illustrates:
+2. When `_kitchenClient.PostAsJsonAsync("/cook", order)` or `_deliveryClient.PostAsJsonAsync("/delivery", order)` is called, the client sends an HTTP request to the local Dapr sidecar (e.g., `localhost:3502` for pizza-storefront). The sidecar handles service discovery and forwards the request to the target service's sidecar, as the picture below illustrates:
 
 <img src="../../imgs/service-invocation.png" width=65%>
 
